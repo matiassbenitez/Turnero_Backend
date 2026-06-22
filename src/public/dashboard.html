@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Panel Profesional - Turnero</title>
+        <link
+            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+            rel="stylesheet"
+        />
+    </head>
+    <body class="bg-light">
+        <div class="container mt-4 mb-5">
+            <div class="card shadow p-4">
+                <h2 class="mb-4 text-center text-md-start">
+                    Planilla de Turnos
+                </h2>
+
+                <div class="row g-3 align-items-center mb-4">
+                    <div class="col-12 col-md-auto d-flex gap-2">
+                        <button
+                            id="btn-all"
+                            class="btn btn-primary"
+                            onclick="setFilter('all')"
+                        >
+                            Todos
+                        </button>
+                        <button
+                            id="btn-today"
+                            class="btn btn-outline-primary"
+                            onclick="setFilter('today')"
+                        >
+                            Hoy
+                        </button>
+                        <button
+                            id="btn-week"
+                            class="btn btn-outline-primary"
+                            onclick="setFilter('week')"
+                        >
+                            Esta Semana
+                        </button>
+                    </div>
+
+                    <div class="col-12 col-md-auto d-none" id="weekPaging">
+                        <div class="input-group input-group-sm">
+                            <button
+                                class="btn btn-secondary"
+                                onclick="changeWeek(-1)"
+                            >
+                                &laquo; Ant
+                            </button>
+                            <span
+                                class="input-group-text bg-white small"
+                                id="weekLabel"
+                                >Semana</span
+                            >
+                            <button
+                                class="btn btn-secondary"
+                                onclick="changeWeek(1)"
+                            >
+                                Sig &raquo;
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-md-auto ms-md-auto">
+                        <div class="form-check form-switch">
+                            <input
+                                class="form-check-input"
+                                type="checkbox"
+                                id="showAvailableCheck"
+                                checked
+                                onchange="renderTable()"
+                            />
+                            <label
+                                class="form-check-label"
+                                for="showAvailableCheck"
+                                >Mostrar turnos libres</label
+                            >
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-striped align-middle">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Fecha y Hora</th>
+                                <th>Estado</th>
+                                <th>Paciente</th>
+                                <th>Contacto</th>
+                                <th>Detalles</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="appointmentsTable"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            let allAppointments = [];
+            let currentFilter = "all"; // 'all', 'today', 'week'
+            let weekOffset = 0; // 0 = esta semana, 1 = sig, -1 = ant
+
+            const tableBody = document.getElementById("appointmentsTable");
+            const weekPaging = document.getElementById("weekPaging");
+            const weekLabel = document.getElementById("weekLabel");
+
+            async function loadAppointments() {
+                const res = await fetch("/api/appointments");
+                allAppointments = await res.json();
+                renderTable();
+            }
+
+            function setFilter(filter) {
+                currentFilter = filter;
+
+                if (filter === "week") {
+                    weekOffset = 0;
+                    weekPaging.classList.remove("d-none");
+                } else {
+                    weekPaging.classList.add("d-none");
+                }
+
+                // Lógica para alternar los colores de Bootstrap
+                const filters = ["all", "today", "week"];
+                filters.forEach((f) => {
+                    const btn = document.getElementById(`btn-${f}`);
+                    if (f === filter) {
+                        btn.classList.replace(
+                            "btn-outline-primary",
+                            "btn-primary",
+                        );
+                    } else {
+                        btn.classList.replace(
+                            "btn-primary",
+                            "btn-outline-primary",
+                        );
+                    }
+                });
+
+                renderTable();
+            }
+
+            function changeWeek(direction) {
+                weekOffset += direction;
+                renderTable();
+            }
+
+            // Helper para comparar fechas sin horas
+            const toDateStr = (date) => date.toISOString().split("T")[0];
+
+            function renderTable() {
+                const showAvailable =
+                    document.getElementById("showAvailableCheck").checked;
+                const now = new Date();
+
+                let filtered = allAppointments;
+
+                // 1. Filtrar por Estado (Checkbox)
+                if (!showAvailable) {
+                    filtered = filtered.filter(
+                        (app) => app.status === "booked",
+                    );
+                }
+
+                // 2. Filtrar por Tiempo (Botones)
+                if (currentFilter === "today") {
+                    const todayStr = toDateStr(now);
+                    filtered = filtered.filter((app) =>
+                        app.dateTime.startsWith(todayStr),
+                    );
+                } else if (currentFilter === "week") {
+                    // Calcular inicio (Lunes) y fin (Sábado) de la semana según el offset
+                    const currentDay = now.getDay();
+                    const distanceToMonday =
+                        currentDay === 0 ? -6 : 1 - currentDay;
+
+                    const startOfWeek = new Date(now);
+                    startOfWeek.setDate(
+                        now.getDate() + distanceToMonday + weekOffset * 7,
+                    );
+
+                    const endOfWeek = new Date(startOfWeek);
+                    endOfWeek.setDate(startOfWeek.getDate() + 5);
+
+                    const startStr = toDateStr(startOfWeek);
+                    const endStr = toDateStr(endOfWeek);
+
+                    weekLabel.innerText = `${startOfWeek.getDate()}/${startOfWeek.getMonth() + 1} al ${endOfWeek.getDate()}/${endOfWeek.getMonth() + 1}`;
+
+                    filtered = filtered.filter((app) => {
+                        const appDate = app.dateTime.split(" ")[0];
+                        return appDate >= startStr && appDate <= endStr;
+                    });
+                }
+
+                // Ordenar por fecha cronológica antes de mostrar
+                filtered.sort((a, b) => a.dateTime.localeCompare(b.dateTime));
+
+                // 3. Formatear y Renderizar HTML (Formato amigable es-AR)
+                const options = {
+                    weekday: "short",
+                    day: "numeric",
+                    month: "short",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: false,
+                };
+
+                tableBody.innerHTML = filtered
+                    .map((app) => {
+                        const isBooked = app.status === "booked";
+                        const isInactive = app.status === "inactive";
+
+                        const dateObj = new Date(
+                            app.dateTime.replace(" ", "T"),
+                        );
+                        const textAmigable = new Intl.DateTimeFormat(
+                            "es-AR",
+                            options,
+                        ).format(dateObj);
+
+                        // Color del cartelito (badge) según el estado
+                        let badgeColor = "success";
+                        let badgeText = "Disponible";
+                        if (isBooked) {
+                            badgeColor = "danger";
+                            badgeText = "Ocupado";
+                        }
+                        if (isInactive) {
+                            badgeColor = "secondary";
+                            badgeText = "Inactivo";
+                        }
+
+                        // El botón cambia de texto y color según el estado
+                        let btnClass = "btn-outline-danger";
+                        let btnText = "Eliminar Horario";
+                        if (isBooked) btnText = "Cancelar Turno";
+                        if (isInactive) {
+                            btnClass = "btn-outline-success";
+                            btnText = "Habilitar";
+                        }
+
+                        return `
+    <tr class="${isInactive ? "table-light text-muted" : ""}">
+      <td><strong>${textAmigable} hs</strong></td>
+      <td>
+        <span class="badge bg-${badgeColor}">
+          ${badgeText}
+        </span>
+      </td>
+      <td>${app.fullName || "-"}</td>
+      <td>
+        ${app.email ? `<div>${app.email}</div>` : ""}
+        ${app.phone ? `<small class="text-muted">${app.phone}</small>` : "-"}
+      </td>
+      <td>
+        ${
+            isBooked
+                ? `
+          <small><strong>Tipo:</strong> ${app.userType}<br><strong>¿Volvió?:</strong> ${app.isReturning}</small>
+        `
+                : "-"
+        }
+      </td>
+      <td>
+        <button class="btn btn-sm ${btnClass}" onclick="cancelAppointment('${app._id}', '${app.status}')">
+          ${btnText}
+        </button>
+      </td>
+    </tr>
+  `;
+                    })
+                    .join("");
+            }
+
+            async function cancelAppointment(id, currentStatus) {
+                let msg = "¿Seguro que querés deshabilitar este horario?";
+                if (currentStatus === "booked")
+                    msg =
+                        "¿Seguro que querés cancelar este turno ocupado? El paciente perderá la reserva.";
+                if (currentStatus === "inactive")
+                    msg =
+                        "¿Querés volver a habilitar este horario para los clientes?";
+
+                if (!confirm(msg)) return;
+
+                const res = await fetch(`/api/appointments/${id}`, {
+                    method: "DELETE",
+                });
+
+                if (res.ok) {
+                    loadAppointments();
+                }
+            }
+
+            loadAppointments();
+        </script>
+    </body>
+</html>
