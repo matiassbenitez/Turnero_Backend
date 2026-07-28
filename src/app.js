@@ -1,6 +1,8 @@
 import express from 'express'
 import mongoose from 'mongoose'
-import router from './routes/appointments.js'
+import appointmentRoutes from './routes/appointments.js'
+import patientRoutes from './routes/patients.js'
+import viewsRoutes from './routes/views.js'
 import dotenv from 'dotenv'
 
 dotenv.config()
@@ -20,7 +22,9 @@ mongoose.connect(MONGO_URI)
 
 
 app.use(express.json())
-app.use('/api/appointments', router)
+app.use('/api/appointments', appointmentRoutes)
+app.use("/api/patients", patientRoutes);
+app.use('/', viewsRoutes)
 app.use(express.static('src/public'));
 app.listen(PORT, () => {
   console.log(`Server listening on http://localhost:${PORT}`)

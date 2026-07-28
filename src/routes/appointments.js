@@ -1,13 +1,13 @@
 import {Router} from 'express'
 import controller from '../controllers/appointments.js'
 
-const router = Router();
+const appointmentRoutes = Router();
 
-router.get('/', controller.getAll);
-router.post('/', controller.create);
-router.delete('/:id', controller.cancel);
+appointmentRoutes.get('/', controller.getAll);
+appointmentRoutes.post('/', controller.create);
+appointmentRoutes.delete('/:id', controller.cancel);
 
-router.post('/bulk', controller.createBulk); 
-router.delete('/:id', controller.cancel);
+appointmentRoutes.post('/bulk', controller.createBulk); 
+appointmentRoutes.delete('/:id', controller.cancel);
 
-export default router
+export default appointmentRoutes

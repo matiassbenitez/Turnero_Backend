@@ -1,26 +1,32 @@
-import mongoose from 'mongoose'
+import mongoose from 'mongoose';
 
 const AppointmentSchema = 
   new mongoose.Schema({
     dateTime: { 
       type: String, 
       required: true,
-      unique: true // <-- Evita duplicados
+      unique: true 
     },
     status: { 
       type: String, 
+      enum: ['available', 'booked', 'inactive'],
       default: 'available' 
     },
-    email: String,
-    userType: String,
-    isReturning: String,
-    fullName: String,
-    phone: String
+    patient: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Patient',
+      default: null
+    },
+    appointmentType: {
+      type: String,
+      enum: ['consultorio', 'domicilio'],
+      default: 'consultorio'
+    }
+  }, { 
+    timestamps: true 
   });
-  
-const Appointment = mongoose.model(
+
+export default mongoose.model(
   'Appointment', 
   AppointmentSchema
 );
-
-export default Appointment
