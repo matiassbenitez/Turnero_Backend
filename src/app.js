@@ -4,6 +4,11 @@ import appointmentRoutes from './routes/appointments.js'
 import patientRoutes from './routes/patients.js'
 import viewsRoutes from './routes/views.js'
 import dotenv from 'dotenv'
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 dotenv.config()
 
@@ -22,10 +27,10 @@ mongoose.connect(MONGO_URI)
 
 
 app.use(express.json())
+app.use(express.static(path.join(__dirname, "public")));
 app.use('/api/appointments', appointmentRoutes)
 app.use("/api/patients", patientRoutes);
 app.use('/', viewsRoutes)
-app.use(express.static(path.join(__dirname, "public")));
 app.listen(PORT, () => {
-  console.log(`Server listening on http://localhost:${PORT}`)
+  console.log(`Server listening on https://turnero-backend-o6mj.onrender.com`)
 })
