@@ -25,7 +25,7 @@ app.use(express.json())
 app.use('/api/appointments', appointmentRoutes)
 app.use("/api/patients", patientRoutes);
 app.use('/', viewsRoutes)
-app.use(express.static(path.join(__dirname, "src", "public")));
+app.use(express.static(path.join(__dirname, "public")));
 app.listen(PORT, () => {
   console.log(`Server listening on http://localhost:${PORT}`)
 })
