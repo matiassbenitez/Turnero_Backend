@@ -1,246 +1,362 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Reserva de Turnos</title>
-        <link
-            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-            rel="stylesheet"
-        />
-    </head>
-    <body class="bg-light">
-        <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
-            <div class="container">
-                <a class="navbar-brand fw-bold" href="/">
-                    Atención Podológica
-                </a>
-                <div class="d-flex gap-2">
-                    <a class="btn btn-primary active" href="/">
-                        Solicitar Turno
-                    </a>
-                    <a class="btn btn-outline-light" href="/setup">
-                        Cargar Agenda
-                    </a>
-                    <a class="btn btn-outline-light" href="/dashboard">
-                        Panel Profesional
-                    </a>
-                </div>
-            </div>
-        </nav>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gestión de Turnos - Atención Podológica</title>
+  <link 
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" 
+    rel="stylesheet" 
+  />
+  <style>
+  /* Contenedor principal de la grilla en PC */
+  #weeklyGrid, .grid-container {
+    display: grid !important;
+    grid-template-columns: repeat(6, 1fr) !important;
+    gap: 12px;
+    width: 100%;
+  }
 
-        <div class="container mb-5">
-            <div class="row justify-content-center">
-                <div class="col-12 col-md-8 col-lg-6">
-                    <div class="card shadow p-4">
-                        <h3 class="card-title text-center mb-4">
-                            Reserva tu Turno
-                        </h3>
+  .day-column {
+    background-color: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 10px;
+    min-height: 400px;
+    box-sizing: border-box;
+    width: 100%;
+  }
 
-                        <form id="bookingForm" onsubmit="handleBooking(event)">
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">
-                                    1. Seleccioná Fecha y Hora
-                                </label>
-                                <select
-                                    class="form-select"
-                                    id="appointmentSelect"
-                                    required
-                                >
-                                    <option value="">
-                                        Cargando horarios disponibles...
-                                    </option>
-                                </select>
-                            </div>
+  .day-header {
+    text-align: center;
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+    border-bottom: 2px solid #0d6efd;
+  }
 
-                            <!-- 2. BÚSQUEDA Y DATOS DEL PACIENTE -->
-                            <div class="mb-3 position-relative">
-                                <label class="form-label fw-bold">
-                                    2. Buscar Paciente (Nombre / Teléfono / DNI)
-                                </label>
-                                <input
-                                    type="text"
-                                    class="form-control"
-                                    id="searchInput"
-                                    placeholder="Escribí para buscar..."
-                                    oninput="onSearchInput(event)"
-                                    autocomplete="off"
-                                />
-                                <div
-                                    id="searchResults"
-                                    class="list-group position-absolute w-100 shadow d-none"
-                                    style="z-index: 1000"
-                                ></div>
-                                <div
-                                    id="searchHelp"
-                                    class="form-text text-muted"
-                                >
-                                    Si no estás registrado, completá los datos
-                                    abajo.
-                                </div>
-                            </div>
+  .slot-btn {
+    width: 100%;
+    margin-bottom: 8px;
+    text-align: left;
+    font-size: 0.85rem;
+    padding: 8px 10px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    white-space: normal;
+    word-break: break-word;
+    display: block;
+  }
 
-                            <input
-                                type="hidden"
-                                id="existingPatientId"
-                                value=""
-                            />
+  .slot-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  }
 
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">
-                                    Nombre Completo *
-                                </label>
-                                <input
-                                    type="text"
-                                    class="form-control"
-                                    id="fullName"
-                                    required
-                                />
-                            </div>
+  .slot-available {
+    background-color: #e8f5e9;
+    border: 1px solid #81c784;
+    color: #2e7d32;
+  }
 
-                            <div class="row g-2 mb-3">
-                                <div class="col-12 col-sm-6">
-                                    <label class="form-label fw-bold">
-                                        DNI
-                                    </label>
-                                    <input
-                                        type="text"
-                                        class="form-control"
-                                        id="dni"
-                                    />
-                                </div>
-                                <div class="col-12 col-sm-6">
-                                    <label class="form-label fw-bold">
-                                        Teléfono *
-                                    </label>
-                                    <input
-                                        type="tel"
-                                        class="form-control"
-                                        id="phone"
-                                        required
-                                    />
-                                </div>
-                            </div>
+  .slot-booked {
+    background-color: #ffebee;
+    border: 1px solid #e57373;
+    color: #c62828;
+  }
 
-                            <div class="mb-4">
-                                <label class="form-label fw-bold">
-                                    3. Tipo de Atención
-                                </label>
-                                <select
-                                    class="form-select"
-                                    id="appointmentType"
-                                    required
-                                >
-                                    <option value="consultorio">
-                                        Atención en Consultorio
-                                    </option>
-                                    <option value="domicilio">
-                                        Atención a Domicilio
-                                    </option>
-                                </select>
-                            </div>
+  /* REGLAS SOLO PARA MÓVIL (< 768px) */
+  @media (max-width: 767.98px) {
+    #weeklyGrid, .grid-container {
+      display: block !important;
+    }
 
-                            <button
-                                type="submit"
-                                class="btn btn-success w-100 py-2 fs-5"
-                            >
-                                Confirmar Reserva
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <script 
-      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js">
-    </script>
-        <script src="../js/index.js"></script>
-        <!-- MODAL EDITAR PACIENTE -->
-<div
-  class="modal fade"
-  id="editPatientModal"
-  tabindex="-1"
-  aria-hidden="true"
->
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title fw-bold">
-          Editar Paciente
-        </h5>
-        <button
-          type="button"
-          class="btn-close"
-          data-bs-dismiss="modal"
-          aria-label="Close"
-        ></button>
+    .day-column {
+      min-height: auto;
+      padding: 12px;
+      margin-bottom: 1rem;
+    }
+
+    .slot-btn {
+      font-size: 0.95rem;
+      padding: 10px 12px;
+      margin-bottom: 10px;
+    }
+
+    #mobileDayTabs {
+      display: flex;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 4px;
+      gap: 4px;
+    }
+
+    #mobileDayTabs .nav-item {
+      flex: 0 0 auto;
+    }
+
+    #mobileDayTabs .nav-link {
+      padding: 6px 12px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+  }
+</style>
+</head>
+<body class="bg-light">
+
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 shadow-sm">
+    <div class="container-fluid px-4">
+      <a class="navbar-brand fw-bold" href="/">
+        Atención Podológica
+      </a>
+      <div class="d-flex gap-2">
+        <a class="btn btn-primary active" href="/">
+          Agenda Semanal
+        </a>
+        <a class="btn btn-outline-light" href="/setup">
+          Cargar Agenda
+        </a>
       </div>
-      <div class="modal-body">
-        <form
-          id="editPatientForm"
-          onsubmit="handleUpdatePatient(event)"
-        >
-          <input
-            type="hidden"
-            id="modalPatientId"
-          />
+    </div>
+  </nav>
 
-          <div class="mb-3">
-            <label class="form-label fw-bold">
-              Nombre Completo *
-            </label>
-            <input
-              type="text"
-              class="form-control"
-              id="modalFullName"
-              required
-            />
-          </div>
+  <div class="container-fluid px-4 mb-5">
+    
+    <!-- Encabezado y Navegación de Semana -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+      <div>
+        <h3 class="fw-bold m-0">Agenda de Turnos</h3>
+        <p class="text-muted small m-0">
+          Seleccioná un horario libre para agendar o un turno ocupado para ver detalles.
+        </p>
+      </div>
 
-          <div class="row g-2 mb-3">
-            <div class="col-6">
-              <label class="form-label fw-bold">
-                DNI
-              </label>
-              <input
-                type="text"
-                class="form-control"
-                id="modalDni"
-              />
+      <div class="d-flex align-items-center gap-2">
+        <button class="btn btn-outline-secondary btn-sm" onclick="changeWeek(-1)">
+          &laquo; Anterior
+        </button>
+        <span class="fw-bold px-2" id="weekLabelRange">
+          Cargando semana...
+        </span>
+        <button class="btn btn-outline-secondary btn-sm" onclick="changeWeek(1)">
+          Siguiente &raquo;
+        </button>
+      </div>
+    </div>
+
+    <!-- Pestañas de días (Solo visibles en Celulares) -->
+<ul class="nav nav-pills nav-justified d-md-none mb-3" id="mobileDayTabs">
+  <li class="nav-item">
+    <button class="nav-link active" onclick="selectMobileDay(0)">Lun</button>
+  </li>
+  <li class="nav-item">
+    <button class="nav-link" onclick="selectMobileDay(1)">Mar</button>
+  </li>
+  <li class="nav-item">
+    <button class="nav-link" onclick="selectMobileDay(2)">Mié</button>
+  </li>
+  <li class="nav-item">
+    <button class="nav-link" onclick="selectMobileDay(3)">Jue</button>
+  </li>
+  <li class="nav-item">
+    <button class="nav-link" onclick="selectMobileDay(4)">Vie</button>
+  </li>
+  <li class="nav-item">
+    <button class="nav-link" onclick="selectMobileDay(5)">Sáb</button>
+  </li>
+</ul>
+
+<!-- Contenedor dinámico de la Grilla -->
+<div id="weeklyGrid"></div>
+      <!-- Los 6 días se generan dinámicamente con JavaScript -->
+    </div>
+
+  </div>
+
+  <!-- MODAL 1: RESERVAR TURNO (NUEVO O EXISTENTE) -->
+  <div class="modal fade" id="bookingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content shadow">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title fw-bold" id="bookingModalTitle">
+            Reservar Turno
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="bookingForm" onsubmit="handleBooking(event)">
+            
+            <!-- Turno Seleccionado (Solo lectura) -->
+            <div class="alert alert-info py-2 mb-3" id="selectedSlotInfo">
+              <strong>Fecha:</strong> --/--/---- | <strong>Hora:</strong> --:-- hs
             </div>
-            <div class="col-6">
-              <label class="form-label fw-bold">
-                Teléfono *
-              </label>
-              <input
-                type="tel"
-                class="form-control"
-                id="modalPhone"
-                required
-              />
-            </div>
-          </div>
 
-          <div class="d-flex justify-content-end gap-2">
-            <button
-              type="button"
-              class="btn btn-secondary"
-              data-bs-dismiss="modal"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              class="btn btn-primary"
-              id="savePatientBtn"
-            >
-              Guardar Cambios
-            </button>
-          </div>
-        </form>
+            <input type="hidden" id="appointmentId" value="" />
+
+            <!-- Búsqueda de Paciente -->
+            <!-- Dentro de #bookingModal -->
+<div class="mb-3 position-relative">
+  <label for="searchInput" class="form-label">Buscar Paciente Existente</label>
+  <div class="input-group">
+    <input 
+      type="text" 
+      class="form-control" 
+      id="searchInput" 
+      placeholder="Escribí nombre o DNI..." 
+      oninput="onSearchInput(event)"
+      autocomplete="off"
+    >
+    <button 
+      type="button" 
+      id="btnEditSelectedPatient" 
+      class="btn btn-outline-warning d-none" 
+      onclick="editSelectedPatientFromForm()"
+      title="Editar datos del paciente seleccionado"
+    >
+      ✏️ Editar
+    </button>
+  </div>
+  <div id="searchResults" class="list-group position-absolute w-100 z-3 d-none shadow"></div>
+</div>
+
+            <input type="hidden" id="existingPatientId" value="" />
+
+            <div class="mb-3">
+              <label class="form-label fw-bold">Nombre Completo *</label>
+              <input type="text" class="form-control" id="fullName" required />
+            </div>
+
+            <div class="row g-2 mb-3">
+              <div class="col-6">
+                <label class="form-label fw-bold">DNI</label>
+                <input type="text" class="form-control" id="dni" />
+              </div>
+              <div class="col-6">
+                <label class="form-label fw-bold">Teléfono *</label>
+                <input type="tel" class="form-control" id="phone" required />
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <label class="form-label fw-bold">Tipo de Atención</label>
+              <select class="form-select" id="appointmentType" required>
+                <option value="consultorio">Atención en Consultorio</option>
+                <option value="domicilio">Atención a Domicilio</option>
+              </select>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                Cancelar
+              </button>
+              <button type="submit" class="btn btn-success fw-bold">
+                Confirmar Reserva
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   </div>
+
+  <!-- MODAL 2: DETALLE DEL TURNO OCUPADO -->
+  <div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content shadow">
+        <div class="modal-header bg-dark text-white">
+          <h5 class="modal-title fw-bold">Detalle del Turno</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <h6 class="text-muted mb-1">Paciente</h6>
+            <h4 class="fw-bold" id="detailPatientName">Juan Pérez</h4>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-6">
+              <span class="text-muted d-block">DNI</span>
+              <strong id="detailPatientDni">12.345.678</strong>
+            </div>
+            <div class="col-6">
+              <span class="text-muted d-block">Teléfono</span>
+              <strong id="detailPatientPhone">342-123456</strong>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <span class="text-muted d-block">Horario y Modalidad</span>
+            <strong id="detailSlotTime">Lunes 10/08 - 10:30 hs (Consultorio)</strong>
+          </div>
+
+          <hr />
+
+          <div class="d-flex flex-column gap-2">
+            <!-- Futuro acceso a Historia Clínica -->
+            <button type="button" class="btn btn-outline-primary w-100" disabled>
+              📋 Ver Historia Clínica (Próximamente)
+            </button>
+            <div class="d-flex justify-content-between mt-2">
+              <button type="button" class="btn btn-warning" onclick="handleEditPatient()">✏️ Editar Paciente</button>
+              <button 
+                type="button" 
+                class="btn btn-outline-danger" 
+                onclick="handleCancelAppointment()"
+              >
+                Cancelar Turno
+              </button>
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                Cerrar
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+    
+  </div>
+  <!-- Modal Editar Paciente -->
+<div class="modal fade" id="editPatientModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Editar Datos del Paciente</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="editPatientForm" onsubmit="handleSavePatient(event)">
+        <div class="modal-body">
+          <input type="hidden" id="editPatientId">
+          
+          <div class="mb-3">
+            <label for="editFullName" class="form-label">Nombre y Apellido</label>
+            <input type="text" class="form-control" id="editFullName" required>
+          </div>
+
+          <div class="mb-3">
+            <label for="editPhone" class="form-label">Teléfono</label>
+            <input type="text" class="form-control" id="editPhone" required>
+          </div>
+
+          <div class="mb-3">
+            <label for="editDni" class="form-label">DNI</label>
+            <input type="text" class="form-control" id="editDni">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
-    </body>
+
+  <script 
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js">
+  </script>
+  <script src="../js/agenda.js"></script>
+</body>
 </html>
